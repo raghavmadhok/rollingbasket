@@ -1,0 +1,310 @@
+<title>RollingBasket</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f3f1ec; --panel:#ffffff; --panel-2:#faf8f3; --ink:#1c1d22; --ink-2:#54565f;
+    --line:#e3ded4; --line-2:#d3ccbd; --accent:#1f4e79; --accent-soft:#e6eef6;
+    --A:#3b5bdb; --A-soft:#e7ebfb; --B:#c85a25; --B-soft:#f8e8dd; --C:#0f8f7a; --C-soft:#dcf1ec;
+    --hi:#1f8a4c; --hi-soft:#dcefe1; --med:#b5820e; --med-soft:#f6ecce; --lo:#b23b4a; --lo-soft:#f6dde0;
+    --radius:14px; --shadow:0 1px 2px rgba(28,29,34,.05),0 8px 24px rgba(28,29,34,.06);
+    color-scheme:light;
+  }
+  :root:not([data-theme="light"]){ }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#15161a; --panel:#1f2127; --panel-2:#23252c; --ink:#f0ede6; --ink-2:#a9abb4;
+      --line:#31333b; --line-2:#3d404a; --accent:#7fb0e0; --accent-soft:#20303f;
+      --A:#8aa0f5; --A-soft:#242a44; --B:#eb955f; --B-soft:#3a2a1f; --C:#4fc9b3; --C-soft:#183530;
+      --hi:#5fce8a; --hi-soft:#1c3527; --med:#e6bd52; --med-soft:#332b13; --lo:#e88490; --lo-soft:#3a2126;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15161a; --panel:#1f2127; --panel-2:#23252c; --ink:#f0ede6; --ink-2:#a9abb4;
+    --line:#31333b; --line-2:#3d404a; --accent:#7fb0e0; --accent-soft:#20303f;
+    --A:#8aa0f5; --A-soft:#242a44; --B:#eb955f; --B-soft:#3a2a1f; --C:#4fc9b3; --C-soft:#183530;
+    --hi:#5fce8a; --hi-soft:#1c3527; --med:#e6bd52; --med-soft:#332b13; --lo:#e88490; --lo-soft:#3a2126;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.5}
+  .wrap{max-width:960px;margin:0 auto;padding-block:28px 60px;padding-left:18px;padding-right:18px}
+  h1,h2,h3{font-family:"Archivo",system-ui,sans-serif;text-wrap:balance;margin:0}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.14em;font-size:11px;color:var(--accent);font-weight:600}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  header.top{margin-bottom:26px}
+  header.top h1{font-size:clamp(30px,6vw,46px);font-weight:800;letter-spacing:-.02em;margin-top:8px}
+  header.top p{color:var(--ink-2);max-width:60ch;margin:10px 0 0;font-size:15.5px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  section{margin-top:22px}
+  .lead{font-size:13px;color:var(--ink-2);margin:2px 0 0}
+  /* VTI header inside sim */
+  .sim{padding:20px}
+  .vti{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .vti .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2);letter-spacing:.02em}
+  .vti .key{display:inline-flex;flex-direction:column;gap:1px}
+  .vti .key b{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .vti .plus{color:var(--line-2);font-weight:700;font-size:18px;padding:0 2px}
+  /* window */
+  .winrow{display:flex;align-items:stretch;gap:10px;margin-top:20px}
+  .win{flex:1;display:grid;gap:10px;grid-template-columns:repeat(var(--n,5),1fr)}
+  .slot{position:relative;border-radius:12px;border:1.5px solid var(--line);background:var(--panel-2);min-height:104px;display:flex;flex-direction:column;justify-content:space-between;padding:10px;overflow:hidden}
+  .slot .idx{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-2)}
+  .slot .letter{font-family:"Archivo",sans-serif;font-weight:800;font-size:30px;line-height:1}
+  .slot .role{font-size:10.5px;color:var(--ink-2)}
+  .slot.A{border-color:var(--A);background:var(--A-soft)} .slot.A .letter{color:var(--A)}
+  .slot.B{border-color:var(--B);background:var(--B-soft)} .slot.B .letter{color:var(--B)}
+  .slot.C{border-color:var(--C);background:var(--C-soft)} .slot.C .letter{color:var(--C)}
+  .slot.newest::after{content:"newest";position:absolute;top:7px;right:7px;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.06em;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+  .flowarrow{align-self:center;color:var(--line-2);font-size:20px;font-weight:700}
+  @keyframes pop{from{transform:translateY(-6px) scale(.96);opacity:.4}to{transform:none;opacity:1}}
+  .anim{animation:pop .32s ease}
+  @media (prefers-reduced-motion:reduce){.anim{animation:none}}
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
+  .btn{font-family:"IBM Plex Sans",sans-serif;font-weight:600;font-size:13.5px;cursor:pointer;border-radius:10px;padding:10px 13px;border:1.5px solid var(--line-2);background:var(--panel);color:var(--ink);display:inline-flex;align-items:center;gap:8px;transition:transform .08s ease,box-shadow .12s ease}
+  .btn:hover{box-shadow:var(--shadow)} .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .btn.A .dot{background:var(--A)} .btn.B .dot{background:var(--B)} .btn.C .dot{background:var(--C)}
+  .btn.ghost{border-style:dashed;color:var(--ink-2)}
+  .spacer{flex:1;min-width:8px}
+  .nctl{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)}
+  .nctl input[type=range]{accent-color:var(--accent);width:120px}
+  .nval{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink);min-width:1.4em;text-align:center}
+  /* result */
+  .result{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:20px}
+  @media(max-width:640px){.result{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:12px;padding:15px;background:var(--panel-2)}
+  .card h3{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-2);font-weight:700}
+  .sug-letter{font-family:"Archivo";font-weight:800;font-size:22px;margin-top:8px;display:flex;align-items:center;gap:10px}
+  .parts{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .parts li{display:flex;justify-content:space-between;gap:12px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;border-bottom:1px dashed var(--line);padding-bottom:5px}
+  .parts li span:last-child{color:var(--ink-2);white-space:nowrap}
+  .conf{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+  .pill{font-family:"Archivo";font-weight:800;font-size:15px;border-radius:999px;padding:7px 16px;letter-spacing:.01em}
+  .pill.hi{background:var(--hi-soft);color:var(--hi)} .pill.med{background:var(--med-soft);color:var(--med)} .pill.lo{background:var(--lo-soft);color:var(--lo)}
+  .share{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--ink-2)}
+  .share b{font-size:26px;color:var(--ink);font-weight:600}
+  .tally{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .tchip{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;display:flex;align-items:center;gap:6px;background:var(--panel)}
+  .status{font-size:13px;color:var(--ink-2);margin-top:14px;min-height:1.3em}
+  .status b{color:var(--ink)}
+  /* explainer grid */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  .ex{padding:16px}
+  .ex h3{font-size:15px;font-weight:700;margin-bottom:6px}
+  .ex p{font-size:13.5px;color:var(--ink-2);margin:0}
+  .ex .mono{font-size:12px;color:var(--ink)}
+  .legend{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .legend .row{display:flex;align-items:center;gap:10px;font-size:13px}
+  .legend .pill{font-size:12px;padding:3px 11px}
+  .win-inline{font-family:"IBM Plex Mono",monospace;font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+  .foot{margin-top:34px;font-size:12px;color:var(--ink-2);text-align:center}
+  .note{font-size:12px;color:var(--ink-2);font-style:italic;margin-top:10px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">SCP · Last Parts Used</div>
+    <h1>RollingBasket</h1>
+    <p>A no-ML way to suggest the right parts for a repair. It watches the last few baskets dealers actually used for a repair, and suggests whichever one shows up most. Press the buttons below and watch it learn.</p>
+  </header>
+
+  <!-- SIMULATOR -->
+  <div class="panel sim">
+    <div class="eyebrow" style="margin-bottom:10px">Live simulator — one VTI</div>
+
+    <div class="vti">
+      <span class="key"><span class="tag">Vehicle Trim</span><b>Ford F-150 XLT 3.5L EcoBoost</b></span>
+      <span class="plus">+</span>
+      <span class="key"><span class="tag">TEK Opcode</span><b>TEK-BRK-FRT-01 · Front Brake Job</b></span>
+      <span class="plus">+</span>
+      <span class="key"><span class="tag">Identifier</span><b>Front Axle</b></span>
+    </div>
+
+    <div class="lead" style="margin-top:16px">The window — last <span id="nlabel">5</span> baskets closed for this repair (oldest → newest)</div>
+    <div class="winrow">
+      <div class="win" id="win"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn A" data-b="A"><span class="dot"></span>Close RO with Basket A</button>
+      <button class="btn B" data-b="B"><span class="dot"></span>Close RO with Basket B</button>
+      <button class="btn C" data-b="C"><span class="dot"></span>Close RO with Basket C</button>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="reset">↺ Reset to seed</button>
+      <div class="nctl">
+        <label for="nslider">Window size N</label>
+        <input type="range" id="nslider" min="3" max="9" step="2" value="5">
+        <span class="nval" id="nval">5</span>
+      </div>
+    </div>
+
+    <div class="result">
+      <div class="card">
+        <h3>Suggested basket (shown to advisor)</h3>
+        <div class="sug-letter" id="sugLetter"></div>
+        <ul class="parts" id="sugParts"></ul>
+      </div>
+      <div class="card conf">
+        <h3>Confidence</h3>
+        <div class="pill" id="confPill"></div>
+        <div class="share"><b id="shareNum">0%</b><br>of the window is the winning basket</div>
+        <div class="tally" id="tally"></div>
+      </div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="note">Illustrative part numbers. Resizing N here keeps the most recent baskets — the real resize rule is an open question in the PRD.</div>
+  </div>
+
+  <!-- BASKET LEGEND -->
+  <section class="grid2">
+    <div class="panel ex">
+      <h3>The three baskets in this example</h3>
+      <p style="margin-bottom:10px">A basket is a set of part numbers + quantities. Two baskets count as the <b>same</b> only if every part number <em>and</em> quantity matches. Change one quantity and it's a different basket.</p>
+      <ul class="parts" id="legendParts"></ul>
+    </div>
+    <div class="panel ex">
+      <h3>How the suggestion is chosen</h3>
+      <p><b>Plurality:</b> the basket that appears most often in the window wins — it does not need a majority.</p>
+      <p style="margin-top:8px"><b>Tie-break = recency:</b> if two baskets tie on count, the more recently used one wins. e.g. <span class="win-inline">A B B C C</span> → B and C tie, C is newer → suggest <b>C</b>.</p>
+      <p style="margin-top:8px"><b>Only RO close counts:</b> the final basket at close enters the window — not what was suggested, not mid-edits.</p>
+    </div>
+  </section>
+
+  <!-- CONFIDENCE + LIFECYCLE -->
+  <section class="grid2">
+    <div class="panel ex">
+      <h3>Confidence bands</h3>
+      <p>Based on the winning basket's share of the window (count ÷ N). Shown next to the suggestion.</p>
+      <div class="legend">
+        <div class="row"><span class="pill hi">High</span> winning share ≥ 80%</div>
+        <div class="row"><span class="pill med">Medium</span> 60% – below 80%</div>
+        <div class="row"><span class="pill lo">Low</span> below 60%</div>
+      </div>
+    </div>
+    <div class="panel ex">
+      <h3>Two phases</h3>
+      <p><b>1 · Seed (cold start):</b> look back ~1 year across all Ford dealers, find the most common basket per repair, and fill the window with it — <span class="win-inline">A A A A A</span>.</p>
+      <p style="margin-top:8px"><b>2 · Drift (live):</b> every RO close pushes a basket in and drops the oldest. The suggestion self-corrects as real usage changes. One global window per repair — never per dealer.</p>
+    </div>
+  </section>
+
+  <div class="foot">RollingBasket · SCP requirement illustration · window size configurable in backend (default 5)</div>
+</div>
+
+<script>
+(function(){
+  var BASKETS = {
+    A:{letter:"A",role:"Pads + rotors + hardware",color:"A",parts:[
+      ["BR-1421","Front pad set","×1"],["BRRF-233","Front rotor","×2"],["BRPC-14","Hardware kit","×1"]]},
+    B:{letter:"B",role:"Pads + rotors only",color:"B",parts:[
+      ["BR-1421","Front pad set","×1"],["BRRF-233","Front rotor","×2"]]},
+    C:{letter:"C",role:"Coated-rotor variant",color:"C",parts:[
+      ["BR-1421","Front pad set","×1"],["BRRF-901","Coated front rotor","×2"],["BRPC-14","Hardware kit","×1"]]}
+  };
+  var N = 5;
+  var win = []; // array of keys, oldest first
+  var seq = 0;  // recency counter parallel to win (assigned per entry)
+  var stamps = [];
+  function seed(){ win=[]; stamps=[]; seq=0; for(var i=0;i<N;i++){ win.push("A"); stamps.push(seq++);} }
+  seed();
+
+  var winEl=document.getElementById("win");
+  var status=document.getElementById("status");
+
+  function resizeTo(newN){
+    // keep most recent newN; if growing, pad front with oldest existing (or A)
+    if(newN<win.length){ var start=win.length-newN; win=win.slice(start); stamps=stamps.slice(start); }
+    else while(win.length<newN){ win.unshift(win.length?win[0]:"A"); stamps.unshift(-1-(newN-win.length)); }
+    N=newN;
+    winEl.style.setProperty("--n",N);
+    document.getElementById("nlabel").textContent=N;
+  }
+
+  function winner(){
+    // count occurrences; tie-break by most recent stamp of that basket
+    var count={}, lastStamp={};
+    for(var i=0;i<win.length;i++){ var k=win[i]; count[k]=(count[k]||0)+1; if(lastStamp[k]===undefined||stamps[i]>lastStamp[k]) lastStamp[k]=stamps[i]; }
+    var best=null;
+    Object.keys(count).forEach(function(k){
+      if(best===null) { best=k; return; }
+      if(count[k]>count[best] || (count[k]===count[best] && lastStamp[k]>lastStamp[best])) best=k;
+    });
+    return {key:best,count:count,share:count[best]/win.length};
+  }
+
+  function confOf(share){
+    if(share>=0.8) return {cls:"hi",label:"High"};
+    if(share>=0.6) return {cls:"med",label:"Medium"};
+    return {cls:"lo",label:"Low"};
+  }
+
+  function partsHtml(key){
+    return BASKETS[key].parts.map(function(p){
+      return '<li><span>'+p[0]+' · '+p[1]+'</span><span>'+p[2]+'</span></li>';
+    }).join("");
+  }
+
+  function render(animLast){
+    winEl.innerHTML="";
+    for(var i=0;i<win.length;i++){
+      var k=win[i], b=BASKETS[k];
+      var d=document.createElement("div");
+      d.className="slot "+b.color+(i===win.length-1?" newest":"")+((animLast&&i===win.length-1)?" anim":"");
+      d.innerHTML='<div class="idx">'+(i+1)+'</div><div class="letter">'+b.letter+'</div><div class="role">'+b.role+'</div>';
+      winEl.appendChild(d);
+    }
+    var w=winner(), c=confOf(w.share);
+    document.getElementById("sugLetter").innerHTML='<span class="dot" style="width:16px;height:16px;background:var(--'+BASKETS[w.key].color+')"></span>Basket '+w.key+' — '+BASKETS[w.key].role;
+    document.getElementById("sugParts").innerHTML=partsHtml(w.key);
+    var pill=document.getElementById("confPill"); pill.className="pill "+c.cls; pill.textContent=c.label;
+    document.getElementById("shareNum").textContent=Math.round(w.share*100)+"%";
+    // tally
+    var t=document.getElementById("tally"); t.innerHTML="";
+    ["A","B","C"].forEach(function(k){
+      var n=w.count[k]||0;
+      var chip=document.createElement("div"); chip.className="tchip";
+      chip.innerHTML='<span class="dot" style="background:var(--'+BASKETS[k].color+')"></span>'+k+' × '+n;
+      t.appendChild(chip);
+    });
+  }
+
+  function close(k){
+    win.push(k); stamps.push(seq++);
+    win.shift(); stamps.shift();
+    render(true);
+    var w=winner();
+    status.innerHTML='RO closed with <b>Basket '+k+'</b>. Window is now <b class="mono">['+win.join(" ")+']</b> → suggesting <b>Basket '+w.key+'</b> ('+Math.round(w.share*100)+'%).';
+  }
+
+  document.querySelectorAll(".btn[data-b]").forEach(function(btn){
+    btn.addEventListener("click",function(){ close(btn.getAttribute("data-b")); });
+  });
+  document.getElementById("reset").addEventListener("click",function(){
+    seed(); render(false); status.innerHTML='Reset to the seed window <b class="mono">[A A A A A]</b> — the most common historical basket, repeated to fill the window.';
+  });
+  var slider=document.getElementById("nslider");
+  slider.addEventListener("input",function(){
+    document.getElementById("nval").textContent=slider.value;
+    resizeTo(parseInt(slider.value,10));
+    render(false);
+    status.innerHTML='Window size set to <b>'+N+'</b>. Confidence bands recompute against the new size.';
+  });
+
+  // legend
+  document.getElementById("legendParts").innerHTML=["A","B","C"].map(function(k){
+    var b=BASKETS[k];
+    return '<li><span><span class="dot" style="background:var(--'+b.color+')"></span> Basket '+k+' — '+b.role+'</span><span>'+b.parts.length+' lines</span></li>';
+  }).join("");
+
+  winEl.style.setProperty("--n",N);
+  render(false);
+  status.innerHTML='Start with the seed window <b class="mono">[A A A A A]</b>. Try closing a few ROs with Basket B and watch the suggestion flip.';
+})();
+</script>
