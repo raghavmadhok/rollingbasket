@@ -59,6 +59,9 @@
   .slot.B{border-color:var(--B);background:var(--B-soft)} .slot.B .letter{color:var(--B)}
   .slot.C{border-color:var(--C);background:var(--C-soft)} .slot.C .letter{color:var(--C)}
   .slot.newest::after{content:"newest";position:absolute;top:7px;right:7px;font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.06em;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+  .slot.empty{border-style:dashed;border-color:var(--line-2);background:transparent;align-items:center;justify-content:center}
+  .slot.empty .letter{color:var(--line-2);font-size:22px}
+  .slot.empty .emptxt{font-size:10px;color:var(--ink-2)}
   .flowarrow{align-self:center;color:var(--line-2);font-size:20px;font-weight:700}
   @keyframes pop{from{transform:translateY(-6px) scale(.96);opacity:.4}to{transform:none;opacity:1}}
   .anim{animation:pop .32s ease}
@@ -110,24 +113,24 @@
 
 <div class="wrap">
   <header class="top">
-    <div class="eyebrow">SCP · Last Parts Used</div>
+    <div class="eyebrow">SCP &middot; Last Parts Used</div>
     <h1>RollingBasket</h1>
     <p>A no-ML way to suggest the right parts for a repair. It watches the last few baskets dealers actually used for a repair, and suggests whichever one shows up most. Press the buttons below and watch it learn.</p>
   </header>
 
   <!-- SIMULATOR -->
   <div class="panel sim">
-    <div class="eyebrow" style="margin-bottom:10px">Live simulator — one VTI</div>
+    <div class="eyebrow" style="margin-bottom:10px">Live simulator &mdash; one VTI</div>
 
     <div class="vti">
       <span class="key"><span class="tag">Vehicle Trim</span><b>Ford F-150 XLT 3.5L EcoBoost</b></span>
       <span class="plus">+</span>
-      <span class="key"><span class="tag">TEK Opcode</span><b>TEK-BRK-FRT-01 · Front Brake Job</b></span>
+      <span class="key"><span class="tag">TEK Opcode</span><b>TEK-BRK-FRT-01 &middot; Front Brake Job</b></span>
       <span class="plus">+</span>
       <span class="key"><span class="tag">Identifier</span><b>Front Axle</b></span>
     </div>
 
-    <div class="lead" style="margin-top:16px">The window — last <span id="nlabel">5</span> baskets closed for this repair (oldest → newest)</div>
+    <div class="lead" style="margin-top:16px">The window &mdash; last <span id="nlabel">5</span> baskets closed for this repair (oldest &rarr; newest)</div>
     <div class="winrow">
       <div class="win" id="win"></div>
     </div>
@@ -137,7 +140,8 @@
       <button class="btn B" data-b="B"><span class="dot"></span>Close RO with Basket B</button>
       <button class="btn C" data-b="C"><span class="dot"></span>Close RO with Basket C</button>
       <div class="spacer"></div>
-      <button class="btn ghost" id="reset">↺ Reset to seed</button>
+      <button class="btn ghost" id="fresh">New VTI (empty)</button>
+      <button class="btn ghost" id="reset">Reset to seed</button>
       <div class="nctl">
         <label for="nslider">Window size N</label>
         <input type="range" id="nslider" min="3" max="9" step="2" value="5">
@@ -159,7 +163,7 @@
       </div>
     </div>
     <div class="status" id="status"></div>
-    <div class="note">Illustrative part numbers. Resizing N here keeps the most recent baskets — the real resize rule is an open question in the PRD.</div>
+    <div class="note">Illustrative part numbers. Confidence is always counted out of the full window size N, so empty slots keep a thin window at Low.</div>
   </div>
 
   <!-- BASKET LEGEND -->
@@ -172,8 +176,8 @@
     <div class="panel ex">
       <h3>How the suggestion is chosen</h3>
       <p><b>Plurality:</b> the basket that appears most often in the window wins — it does not need a majority.</p>
-      <p style="margin-top:8px"><b>Tie-break = recency:</b> if two baskets tie on count, the more recently used one wins. e.g. <span class="win-inline">A B B C C</span> → B and C tie, C is newer → suggest <b>C</b>.</p>
-      <p style="margin-top:8px"><b>Only RO close counts:</b> the final basket at close enters the window — not what was suggested, not mid-edits.</p>
+      <p style="margin-top:8px"><b>Tie-break = recency:</b> if two baskets tie on count, the more recently used one wins. e.g. <span class="win-inline">A B B C C</span> &rarr; B and C tie, C is newer &rarr; suggest <b>C</b>.</p>
+      <p style="margin-top:8px"><b>Only RO close counts:</b> the final basket at close enters the window &mdash; not what was suggested, not mid-edits.</p>
     </div>
   </section>
 
@@ -181,7 +185,7 @@
   <section class="grid2">
     <div class="panel ex">
       <h3>Confidence bands</h3>
-      <p>Based on the winning basket's share of the window (count ÷ N). Shown next to the suggestion.</p>
+      <p>Winning basket's share of the window, always counted out of the full <b>N</b> — empty slots count as "no vote," so a thin window reads Low until agreement builds.</p>
       <div class="legend">
         <div class="row"><span class="pill hi">High</span> winning share ≥ 80%</div>
         <div class="row"><span class="pill med">Medium</span> 60% – below 80%</div>
@@ -189,13 +193,13 @@
       </div>
     </div>
     <div class="panel ex">
-      <h3>Two phases</h3>
-      <p><b>1 · Seed (cold start):</b> look back ~1 year across all Ford dealers, find the most common basket per repair, and fill the window with it — <span class="win-inline">A A A A A</span>.</p>
-      <p style="margin-top:8px"><b>2 · Drift (live):</b> every RO close pushes a basket in and drops the oldest. The suggestion self-corrects as real usage changes. One global window per repair — never per dealer.</p>
+      <h3>New repairs, no history</h3>
+      <p>A VTI the system has never seen starts with an <b>empty</b> window. We still show the very first basket a dealer closes &mdash; but at <b>Low</b> confidence, because it's only 1 vote out of N.</p>
+      <p style="margin-top:8px">As more dealers close the same basket, confidence climbs on its own (Low &rarr; Medium &rarr; High). No hiding, no thresholds &mdash; confidence carries the trust signal. Press <b>New VTI (empty)</b> above and add closes to watch it grow.</p>
     </div>
   </section>
 
-  <div class="foot">RollingBasket · SCP requirement illustration · window size configurable in backend (default 5)</div>
+  <div class="foot">RollingBasket &middot; SCP requirement illustration &middot; window size configurable in backend (default 5)</div>
 </div>
 
 <script>
@@ -209,26 +213,27 @@
       ["BR-1421","Front pad set","×1"],["BRRF-901","Coated front rotor","×2"],["BRPC-14","Hardware kit","×1"]]}
   };
   var N = 5;
-  var win = []; // array of keys, oldest first
+  var win = []; // array of keys, oldest first (length 0..N)
   var seq = 0;  // recency counter parallel to win (assigned per entry)
   var stamps = [];
   function seed(){ win=[]; stamps=[]; seq=0; for(var i=0;i<N;i++){ win.push("A"); stamps.push(seq++);} }
+  function fresh(){ win=[]; stamps=[]; seq=0; }
   seed();
 
   var winEl=document.getElementById("win");
   var status=document.getElementById("status");
 
   function resizeTo(newN){
-    // keep most recent newN; if growing, pad front with oldest existing (or A)
+    // keep most recent newN; growing just adds empty capacity
     if(newN<win.length){ var start=win.length-newN; win=win.slice(start); stamps=stamps.slice(start); }
-    else while(win.length<newN){ win.unshift(win.length?win[0]:"A"); stamps.unshift(-1-(newN-win.length)); }
     N=newN;
     winEl.style.setProperty("--n",N);
     document.getElementById("nlabel").textContent=N;
   }
 
   function winner(){
-    // count occurrences; tie-break by most recent stamp of that basket
+    // count occurrences over filled slots; tie-break by most recent stamp; share is out of full N
+    if(win.length===0) return null;
     var count={}, lastStamp={};
     for(var i=0;i<win.length;i++){ var k=win[i]; count[k]=(count[k]||0)+1; if(lastStamp[k]===undefined||stamps[i]>lastStamp[k]) lastStamp[k]=stamps[i]; }
     var best=null;
@@ -236,7 +241,7 @@
       if(best===null) { best=k; return; }
       if(count[k]>count[best] || (count[k]===count[best] && lastStamp[k]>lastStamp[best])) best=k;
     });
-    return {key:best,count:count,share:count[best]/win.length};
+    return {key:best,count:count,share:count[best]/N};
   }
 
   function confOf(share){
@@ -253,20 +258,34 @@
 
   function render(animLast){
     winEl.innerHTML="";
-    for(var i=0;i<win.length;i++){
-      var k=win[i], b=BASKETS[k];
+    for(var i=0;i<N;i++){
       var d=document.createElement("div");
-      d.className="slot "+b.color+(i===win.length-1?" newest":"")+((animLast&&i===win.length-1)?" anim":"");
-      d.innerHTML='<div class="idx">'+(i+1)+'</div><div class="letter">'+b.letter+'</div><div class="role">'+b.role+'</div>';
+      if(i<win.length){
+        var k=win[i], b=BASKETS[k];
+        d.className="slot "+b.color+(i===win.length-1?" newest":"")+((animLast&&i===win.length-1)?" anim":"");
+        d.innerHTML='<div class="idx">'+(i+1)+'</div><div class="letter">'+b.letter+'</div><div class="role">'+b.role+'</div>';
+      } else {
+        d.className="slot empty";
+        d.innerHTML='<div class="letter">&ndash;</div><div class="emptxt">empty</div>';
+      }
       winEl.appendChild(d);
     }
-    var w=winner(), c=confOf(w.share);
-    document.getElementById("sugLetter").innerHTML='<span class="dot" style="width:16px;height:16px;background:var(--'+BASKETS[w.key].color+')"></span>Basket '+w.key+' — '+BASKETS[w.key].role;
-    document.getElementById("sugParts").innerHTML=partsHtml(w.key);
-    var pill=document.getElementById("confPill"); pill.className="pill "+c.cls; pill.textContent=c.label;
-    document.getElementById("shareNum").textContent=Math.round(w.share*100)+"%";
-    // tally
+    var w=winner();
+    var sugLetter=document.getElementById("sugLetter"), sugParts=document.getElementById("sugParts");
+    var pill=document.getElementById("confPill"), shareNum=document.getElementById("shareNum");
     var t=document.getElementById("tally"); t.innerHTML="";
+    if(!w){
+      sugLetter.innerHTML='<span class="role" style="font-size:14px;font-weight:400;color:var(--ink-2)">No data yet — nothing is suggested for a brand-new VTI.</span>';
+      sugParts.innerHTML="";
+      pill.className="pill lo"; pill.textContent="—";
+      shareNum.textContent="0%";
+      return;
+    }
+    var c=confOf(w.share);
+    sugLetter.innerHTML='<span class="dot" style="width:16px;height:16px;background:var(--'+BASKETS[w.key].color+')"></span>Basket '+w.key+' — '+BASKETS[w.key].role;
+    sugParts.innerHTML=partsHtml(w.key);
+    pill.className="pill "+c.cls; pill.textContent=c.label;
+    shareNum.textContent=Math.round(w.share*100)+"%";
     ["A","B","C"].forEach(function(k){
       var n=w.count[k]||0;
       var chip=document.createElement("div"); chip.className="tchip";
@@ -277,10 +296,10 @@
 
   function close(k){
     win.push(k); stamps.push(seq++);
-    win.shift(); stamps.shift();
+    if(win.length>N){ win.shift(); stamps.shift(); }   // slide only once the window is full
     render(true);
     var w=winner();
-    status.innerHTML='RO closed with <b>Basket '+k+'</b>. Window is now <b class="mono">['+win.join(" ")+']</b> → suggesting <b>Basket '+w.key+'</b> ('+Math.round(w.share*100)+'%).';
+    status.innerHTML='RO closed with <b>Basket '+k+'</b>. Window is now <b class="mono">['+win.join(" ")+(win.length<N?(" "+Array(N-win.length+1).join("· ")).trim():"")+']</b> → suggesting <b>Basket '+w.key+'</b> at '+Math.round(w.share*100)+'% (out of '+N+').';
   }
 
   document.querySelectorAll(".btn[data-b]").forEach(function(btn){
@@ -288,6 +307,9 @@
   });
   document.getElementById("reset").addEventListener("click",function(){
     seed(); render(false); status.innerHTML='Reset to the seed window <b class="mono">[A A A A A]</b> — the most common historical basket, repeated to fill the window.';
+  });
+  document.getElementById("fresh").addEventListener("click",function(){
+    fresh(); render(false); status.innerHTML='Brand-new VTI — window is <b>empty</b>. Close one RO and it shows immediately, but at <b>Low</b> (1 out of '+N+'). Keep adding to watch confidence climb.';
   });
   var slider=document.getElementById("nslider");
   slider.addEventListener("input",function(){
